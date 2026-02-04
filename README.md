@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Lunor](public/vite.svg)
+![Lunor](public/lunor.png)
 
 **A Modern, Lightweight, and Transparent Web Browser built with Electron & React.**
 
@@ -16,6 +16,16 @@
 ## 🇬🇧 English
 
 **Lunor** (codenamed BrowserMos) is a concept web browser designed for minimalism and aesthetic appeal. It features a transparent UI, a macOS-like dock, and essential browsing utilities, all built on the robust Electron framework.
+
+### 📸 Screenshots
+
+<div align="center">
+  <img src="example/image1.png" width="45%" alt="Screenshot 1">
+  <img src="example/image3.png" width="45%" alt="Screenshot 2">
+</div>
+<div align="center">
+  <img src="example/image4.png" width="90%" alt="Screenshot 3">
+</div>
 
 ### ✨ Key Features
 
@@ -68,7 +78,7 @@
 
 ### ✨ 主要特性
 
-*   **毛玻璃 UI**: 精美、透明的用户界面，完美融入您的桌面环境（支持主题自定义）。
+*   **Macos样式**: 精美、现代的用户界面，完美融入您的桌面环境（支持主题自定义）。
 *   **智能 Dock 栏**: 自动隐藏的 Dock 栏，可快速访问标签页、书签和设置。
 *   **标签页管理**:
     *   **实时预览**: 鼠标悬停在 Dock 图标上即可查看标签页的实时截图预览。
@@ -76,6 +86,7 @@
 *   **隐私至上**: 历史记录和设置仅存储在本地设备上。无云端同步，无追踪。
 *   **实用工具**: 内置历史记录和下载管理器。
 *   **个性化**: 支持更换搜索引擎、切换主题（浅色/深色/跟随系统）以及调整字体大小。
+*   **轻量**: 占用系统资源少，启动速度快，内存占用低，杜绝无用的插件，广告。
 
 ### 🛠 技术栈
 
