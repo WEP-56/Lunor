@@ -1,7 +1,7 @@
 {
   "name": "browsermos",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "description": "A Modern, Lightweight, and Transparent Web Browser built with Electron & React.",
   "author": "BrowserMos Team",
