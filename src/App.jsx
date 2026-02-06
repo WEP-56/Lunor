@@ -4,7 +4,8 @@ import NewTab from './components/NewTab';
 import SettingsPage from './components/SettingsPage';
 import HistoryPage from './components/HistoryPage';
 import DownloadsPage from './components/DownloadsPage';
-import { Settings, Plus, X, Minus, Maximize2, ArrowLeft, ArrowRight, RotateCw, Star, Trash2, Edit, Save, Search, Monitor, Shield, Cpu, Info, RefreshCcw, History, Download, Folder, Play, Pause, File, Globe, Zap } from 'lucide-react';
+import ExtensionsPage from './components/ExtensionsPage';
+import { Settings, Plus, X, Minus, Maximize2, ArrowLeft, ArrowRight, RotateCw, Star, Trash2, Edit, Save, Search, Monitor, Shield, Cpu, Info, RefreshCcw, History, Download, Folder, Play, Pause, File, Globe, Zap, Puzzle } from 'lucide-react';
 
 // Search Engines Configuration
 const SEARCH_ENGINES = [
@@ -89,6 +90,14 @@ const TRANSLATIONS = {
     showInFolder: 'Show in Folder',
     // History Page
     searchHistory: 'Search history',
+    // Extensions
+    extensions: 'Extensions',
+    manageExtensions: 'Manage Extensions',
+    loadUnpacked: 'Load Unpacked',
+    noExtensions: 'No extensions installed',
+    installTip: 'Load an unpacked extension to get started.',
+    recommendedExtensions: 'Recommended Extensions',
+    recommendedExtensionsDesc: 'These extensions are known to work well. Click download to get the source code, then unzip and load it above.',
     // New Tab
     greeting: 'Good Day',
     searchWith: 'Search with',
@@ -167,6 +176,14 @@ const TRANSLATIONS = {
     showInFolder: '在文件夹中显示',
     // History Page
     searchHistory: '搜索历史记录',
+    // Extensions
+    extensions: '扩展程序',
+    manageExtensions: '管理扩展程序',
+    loadUnpacked: '加载已解压的扩展程序',
+    noExtensions: '未安装扩展程序',
+    installTip: '加载一个已解压的扩展程序以开始使用。',
+    recommendedExtensions: '推荐扩展',
+    recommendedExtensionsDesc: '以下扩展已知可以良好运行。点击下载获取源代码，解压后在上方加载。',
     // New Tab
     greeting: '你好',
     searchWith: '使用',
@@ -201,6 +218,16 @@ const WebViewItem = ({ url, active, onNewWindow, onRef, onDidNavigate, onPageTit
         onLeaveHtmlFullScreenRef.current = onLeaveHtmlFullScreen;
     }, [onNewWindow, onDidNavigate, onPageTitleUpdated, onEnterHtmlFullScreen, onLeaveHtmlFullScreen]);
 
+    const [currentSrc, setCurrentSrc] = useState(url);
+
+    useEffect(() => {
+        // Only update src if it's significantly different to avoid loops
+        // If the new URL is effectively the same as what the webview is already showing (via did-navigate), don't update src
+        if (url !== currentSrc) {
+            setCurrentSrc(url);
+        }
+    }, [url]);
+
     useEffect(() => {
         const webview = webviewRef.current;
         if (webview) {
@@ -213,6 +240,9 @@ const WebViewItem = ({ url, active, onNewWindow, onRef, onDidNavigate, onPageTit
             };
 
             const handleDidNavigate = (e) => {
+               // When navigation happens, we notify parent but we don't want to force a re-render that resets 'src'
+               // causing a loop. The parent updates 'url' prop, which updates 'currentSrc', which updates webview 'src'.
+               // We need to break this cycle.
                if (onDidNavigateRef.current) onDidNavigateRef.current(e.url);
             };
             
@@ -225,10 +255,14 @@ const WebViewItem = ({ url, active, onNewWindow, onRef, onDidNavigate, onPageTit
             };
 
             const handleDidFailLoad = (e) => {
-                if (e.errorCode !== -3) { // Ignore ERR_ABORTED which is harmless (often due to redirects or stop loading)
+                // Ignore ERR_ABORTED (-3) which is harmless
+                if (e.errorCode !== -3) { 
                     console.error('[WebView] Load failed:', e.errorCode, e.errorDescription, 'URL:', e.validatedURL);
                 }
             };
+
+            
+            // ... existing code ...
 
             const handleEnterHtmlFullScreen = () => {
                 if (onEnterHtmlFullScreenRef.current) onEnterHtmlFullScreenRef.current();
@@ -263,7 +297,7 @@ const WebViewItem = ({ url, active, onNewWindow, onRef, onDidNavigate, onPageTit
         <div className={`webview-container ${active ? 'active' : ''}`}>
              <webview 
                ref={webviewRef}
-               src={url} 
+               src={currentSrc} 
                useragent={userAgent}
                style={{width: '100%', height: '100%', border: 'none'}}
                allowpopups="true"
@@ -287,7 +321,8 @@ function App() {
       // homePage removed
       searchEngine: 'https://www.google.com/search?q=',
       theme: 'auto', // auto, light, dark
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      // Default to Firefox UA to bypass Google login restrictions
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
       // Performance
       memorySaver: 'balanced', // moderate, balanced, max
       tabHoverPreview: true,
@@ -307,11 +342,14 @@ function App() {
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.en;
   const [history, setHistory] = useState([]);
   const [downloads, setDownloads] = useState([]);
+  const [extensions, setExtensions] = useState([]); // Add extensions state
   const [showHistoryPopup, setShowHistoryPopup] = useState(false);
   const [showDownloadsPopup, setShowDownloadsPopup] = useState(false);
+  const [showExtensionsPopup, setShowExtensionsPopup] = useState(false); // Add extensions popup state
   
   const historyPopupTimeoutRef = useRef(null);
   const downloadsPopupTimeoutRef = useRef(null);
+  const extensionsPopupTimeoutRef = useRef(null); // Add extensions popup timeout ref
 
   const handleHistoryMouseEnter = () => {
       if (historyPopupTimeoutRef.current) {
@@ -340,6 +378,24 @@ function App() {
           setShowDownloadsPopup(false);
       }, 300);
   };
+
+  const handleExtensionsMouseEnter = () => {
+      if (extensionsPopupTimeoutRef.current) {
+          clearTimeout(extensionsPopupTimeoutRef.current);
+          extensionsPopupTimeoutRef.current = null;
+      }
+      setShowExtensionsPopup(true);
+      // Fetch extensions when popup opens to show list
+      if (window.electronAPI && window.electronAPI.getExtensions) {
+          window.electronAPI.getExtensions().then(setExtensions);
+      }
+  };
+
+  const handleExtensionsMouseLeave = () => {
+      extensionsPopupTimeoutRef.current = setTimeout(() => {
+          setShowExtensionsPopup(false);
+      }, 300);
+  };
   
   const webviewRefs = useRef({});
   const dockTimeoutRef = useRef(null);
@@ -349,8 +405,13 @@ function App() {
   const saveSettings = (newSettings) => {
       setSettings(newSettings);
       localStorage.setItem('browsermos-settings', JSON.stringify(newSettings));
-      if (window.electronAPI && window.electronAPI.setDownloadPath) {
-          window.electronAPI.setDownloadPath(newSettings.downloadPath);
+      if (window.electronAPI) {
+          if (window.electronAPI.setDownloadPath) {
+              window.electronAPI.setDownloadPath(newSettings.downloadPath);
+          }
+          if (window.electronAPI.setUserAgent) {
+              window.electronAPI.setUserAgent(newSettings.userAgent);
+          }
       }
   };
 
@@ -364,7 +425,7 @@ function App() {
       // console.log('[History] Adding item:', url, title, 'Enabled:', settings.historyEnabled);
       
       if (!settings.historyEnabled) return;
-      if (url === 'browser://newtab' || url === 'browser://settings' || url === 'browser://history' || url === 'browser://downloads') return;
+      if (url === 'browser://newtab' || url === 'browser://settings' || url === 'browser://history' || url === 'browser://downloads' || url === 'browser://extensions') return;
       
       setHistory(prev => {
           // Debounce duplicate entries (same URL within short time or already top)
@@ -401,12 +462,13 @@ function App() {
 
   const createNewTab = (url = 'browser://newtab') => {
     const newId = generateId();
+    const timestamp = Date.now();
     const newTab = { 
         id: newId, 
         url: url, 
         title: 'New Tab', 
         icon: null,
-        lastAccessed: Date.now(),
+        lastAccessed: timestamp,
         suspended: false,
         memoryUsage: generateMemoryUsage() // Stable memory usage
     };
@@ -503,6 +565,10 @@ function App() {
       const threshold = 100; // Trigger area
       const hideThreshold = 140; // Hide area
 
+      // Check if we are dragging something (links, tabs, etc.)
+      // We can use a ref to track drag state if e.buttons is not enough, 
+      // but 'dragover' event is better for drag detection.
+      
       if (mouseY >= windowHeight - threshold) {
         if (!isDockVisibleRef.current) setIsDockVisible(true);
         if (dockTimeoutRef.current) {
@@ -526,9 +592,28 @@ function App() {
       }
     };
 
+    // Auto-show dock when dragging a link or object over the window
+    const handleWindowDragOver = (e) => {
+        // Show dock if dragging near bottom, or just show it when dragging starts?
+        // User requested: "When dragging link in webpage, dock bar appears"
+        // So we should show it immediately or when close to bottom.
+        // Let's show it if dragging anywhere for now, or maybe bottom half?
+        // Simpler: Show dock whenever a drag is active in the window.
+        if (!isDockVisibleRef.current) {
+            setIsDockVisible(true);
+        }
+        if (dockTimeoutRef.current) {
+            clearTimeout(dockTimeoutRef.current);
+            dockTimeoutRef.current = null;
+        }
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('dragover', handleWindowDragOver); // Listen for dragover globally
+    
     return () => {
         window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('dragover', handleWindowDragOver);
         if (dockTimeoutRef.current) clearTimeout(dockTimeoutRef.current);
     };
   }, []);
@@ -559,17 +644,46 @@ function App() {
 
   // Load settings & bookmarks & history from localStorage
   useEffect(() => {
+      // Check for initial URL from query params (for new windows)
+      const params = new URLSearchParams(window.location.search);
+      const initialUrl = params.get('initialUrl');
+      if (initialUrl) {
+          // Replace the default new tab with the requested URL
+          const newId = generateId();
+          setTabs([{
+              id: newId,
+              url: initialUrl,
+              title: 'Loading...',
+              icon: null,
+              lastAccessed: Date.now(),
+              suspended: false,
+              memoryUsage: generateMemoryUsage()
+          }]);
+          setActiveTabId(newId);
+      }
+
+      // Load settings & bookmarks & history from localStorage
       const savedSettings = localStorage.getItem('browsermos-settings');
       if (savedSettings) {
           try {
               const parsed = JSON.parse(savedSettings);
               // Merge saved settings with current defaults to ensure new fields (like historyEnabled) exist
-              setSettings(prev => ({
+              const mergedSettings = {
                   ...prev,
                   ...parsed
-              }));
+              };
+              setSettings(prev => mergedSettings);
+              // Apply saved UA immediately
+              if (window.electronAPI && window.electronAPI.setUserAgent) {
+                  window.electronAPI.setUserAgent(mergedSettings.userAgent);
+              }
           } catch (e) {
               console.error('Failed to parse settings:', e);
+          }
+      } else {
+          // If no settings saved, ensure default UA is applied
+          if (window.electronAPI && window.electronAPI.setUserAgent) {
+              window.electronAPI.setUserAgent(settings.userAgent);
           }
       }
       
@@ -598,7 +712,7 @@ function App() {
       }, 5000); // Capture every 5 seconds
 
       return () => clearInterval(interval);
-  }, [activeTabId, settings.tabHoverPreview]);
+  }, [activeTabId, settings.tabHoverPreview]); // updateTabPreview is stable (or should be)
 
   // Handle Window Controls
   const handleMinimize = () => {
@@ -703,7 +817,7 @@ function App() {
     try {
       const domain = new URL(url).hostname;
       return `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
-    } catch (error) {
+    } catch (error) { // eslint-disable-line no-unused-vars
       return null;
     }
   };
@@ -817,35 +931,143 @@ function App() {
       }
   };
 
-  const [editingBookmarkId, setEditingBookmarkId] = useState(null);
-  const [editBookmarkForm, setEditBookmarkForm] = useState({ title: '', url: '' });
-
-  /* Unused bookmark editing functions - kept for future implementation
-  const startEditBookmark = (bm) => {
-    setEditingBookmarkId(bm.id);
-    setEditBookmarkForm({ title: bm.title, url: bm.url });
-  };
-
-  const saveEditBookmark = () => {
-    if (!editingBookmarkId) return;
-    const updated = bookmarks.map(bm => 
-        bm.id === editingBookmarkId ? { ...bm, ...editBookmarkForm } : bm
-    );
-    saveBookmarks(updated);
-    setEditingBookmarkId(null);
-  };
-  */
-
   const deleteBookmark = (id) => {
     saveBookmarks(bookmarks.filter(bm => bm.id !== id));
   };
 
+  // Drag and Drop Logic for Dock Tabs
+  const [draggedTabId, setDraggedTabId] = useState(null);
+
+  const handleTabDragStart = (e, id) => {
+      setDraggedTabId(id);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id); // Required for Firefox
+      // Create a drag image if needed, or let browser handle it
+  };
+
+  const handleTabDragOver = (e, id) => {
+      e.preventDefault(); // Allow drop
+      if (draggedTabId === id) return;
+      // We can implement reordering preview here if we want complex UI
+  };
+
+  const handleTabDrop = (e, targetId) => {
+      e.preventDefault();
+      e.stopPropagation(); // Stop propagation to dock container
+      
+      if (!draggedTabId || draggedTabId === targetId) return;
+
+      // Reorder tabs
+      const sourceIndex = tabs.findIndex(t => t.id === draggedTabId);
+      const targetIndex = tabs.findIndex(t => t.id === targetId);
+      
+      if (sourceIndex === -1 || targetIndex === -1) return;
+
+      const newTabs = [...tabs];
+      const [movedTab] = newTabs.splice(sourceIndex, 1);
+      newTabs.splice(targetIndex, 0, movedTab);
+      
+      setTabs(newTabs);
+      setDraggedTabId(null);
+  };
+
+  const handleDockDragOver = (e) => {
+      e.preventDefault();
+  };
+
+  const handleDockDrop = (e) => {
+      e.preventDefault();
+      // If dropped on empty space in dock, maybe move to end?
+      // For now, do nothing or handle specific cases
+  };
+  
+  // Handle dragging tab outside the window (Detach)
+  const handleTabDragEnd = (e) => {
+      // Check if the drag ended outside the window
+      // Note: e.screenX/Y are coordinates on the screen
+      // We need to compare with window bounds
+      
+      // In a web environment, detecting "outside window" reliably in dragEnd is tricky 
+      // because e.dataTransfer.dropEffect might be 'none' if dropped on desktop, 
+      // but 'none' also happens if cancelled.
+      // However, we can check coordinates.
+      
+      // If we are in Electron, window.screenX/Y gives window position.
+      const winX = window.screenX;
+      const winY = window.screenY;
+      const winW = window.outerWidth;
+      const winH = window.outerHeight;
+      
+      const mouseX = e.screenX;
+      const mouseY = e.screenY;
+      
+      const isOutside = (
+          mouseX < winX || 
+          mouseX > winX + winW || 
+          mouseY < winY || 
+          mouseY > winY + winH
+      );
+      
+      // Also consider if it's far enough to trigger detach (e.g. 50px buffer)
+      // But standard "tear off" usually happens immediately when outside.
+      
+      if (isOutside && draggedTabId) {
+          const tabToDetach = tabs.find(t => t.id === draggedTabId);
+          if (tabToDetach) {
+              // Create new window with this URL
+              if (window.electronAPI && window.electronAPI.createNewWindow) {
+                  window.electronAPI.createNewWindow(tabToDetach.url);
+                  // Close the tab in current window
+                  // Only if we have more than 1 tab? Or close window if last tab?
+                  // closeTab handles "if last tab -> create new tab", which keeps window open.
+                  // If we want to close window if it's the last tab and we moved it out...
+                  // Standard browser behavior: original window closes if it's empty.
+                  // Our closeTab:
+                  /*
+                    const newTabs = tabs.filter(t => t.id !== id);
+                    if (newTabs.length === 0) {
+                      createNewTab();
+                    }
+                  */
+                  // We might want to actually allow closing the window if it's empty?
+                  // For now, let's just close the tab.
+                  
+                  // We need to call closeTab, but closeTab expects an event or just ID.
+                  // We can extract the logic or just call it.
+                  
+                  // Wait, we need to pass 'null' for event if we call logic directly
+                  // But closeTab uses `e.stopPropagation()` if e exists.
+                  
+                  const newTabs = tabs.filter(t => t.id !== draggedTabId);
+                  if (newTabs.length === 0) {
+                      // If this was the last tab, and we moved it to a new window...
+                      // We should probably close this window?
+                      if (window.electronAPI.close) {
+                           window.electronAPI.close();
+                      } else {
+                           createNewTab(); // Fallback
+                      }
+                  } else {
+                      setTabs(newTabs);
+                      if (activeTabId === draggedTabId) {
+                          setActiveTabId(newTabs[newTabs.length - 1].id);
+                      }
+                      delete webviewRefs.current[draggedTabId];
+                  }
+              }
+          }
+      }
+      setDraggedTabId(null);
+  };
+
+  /*
   const addBookmark = () => {
       const newId = generateId();
       const newBm = { id: newId, title: 'New Bookmark', url: 'https://', icon: null };
       saveBookmarks([...bookmarks, newBm]);
-      // startEditBookmark(newBm); // UI for editing not implemented
+      startEditBookmark(newBm); // UI for editing not implemented
   };
+  */
 
   return (
     <div className="app-container">
@@ -954,6 +1176,30 @@ function App() {
                       </div>
                   )}
               </div>
+
+              <div className="nav-btn-wrapper" onMouseEnter={handleExtensionsMouseEnter} onMouseLeave={handleExtensionsMouseLeave}>
+                  <button className="nav-icon-btn large" onClick={() => createNewTab('browser://extensions')} title={t.extensions}>
+                    <Puzzle size={20} />
+                  </button>
+                  {showExtensionsPopup && (
+                      <div className="nav-popup visible">
+                          <div className="popup-header">{t.extensions}</div>
+                          {extensions.map(ext => (
+                              <div key={ext.id} className="popup-item" onClick={() => {}}>
+                                  <div className="popup-item-icon"><Puzzle size={14} /></div>
+                                  <div className="popup-item-info">
+                                      <div className="popup-item-title">{ext.name}</div>
+                                      <div className="popup-item-subtitle">{ext.version}</div>
+                                  </div>
+                              </div>
+                          ))}
+                          {extensions.length === 0 && <div style={{padding: 20, textAlign: 'center', opacity: 0.5}}>{t.noExtensions}</div>}
+                          <button className="popup-footer-btn" onClick={() => createNewTab('browser://extensions')}>
+                              {t.manageExtensions}
+                          </button>
+                      </div>
+                  )}
+              </div>
           </div>
       </div>
       )}
@@ -998,6 +1244,11 @@ function App() {
                     openDownloadFolder={openDownloadFolder}
                     deleteDownload={deleteDownload}
                     t={t}
+                />
+            ) : tab.url === 'browser://extensions' ? (
+                <ExtensionsPage 
+                    t={t}
+                    onOpenUrl={(url) => createNewTab(url)}
                 />
             ) : (
                window.electronAPI ? (
@@ -1057,7 +1308,7 @@ function App() {
         ))}
       </div>
 
-      <div className={`dock-container ${isDockVisible && !isHtmlFullScreen ? 'visible' : ''}`} onDragOver={handleDragOver} onDrop={handleDrop}>
+      <div className={`dock-container ${isDockVisible && !isHtmlFullScreen ? 'visible' : ''}`} onDragOver={handleDragOver} onDrop={handleDrop} onContextMenu={(e) => e.preventDefault()}>
         <div className="dock">
           {/* Left: Settings & Bookmarks */}
           <div className="dock-section left">
@@ -1083,6 +1334,7 @@ function App() {
                   src={getFavicon(bm.url)} 
                   alt={bm.title} 
                   style={{width: '24px', height: '24px', borderRadius: '50%'}}
+                  draggable="false"
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'flex';
@@ -1103,7 +1355,16 @@ function App() {
                 className={`dock-item ${tab.id === activeTabId ? 'active' : ''}`}
                 onClick={() => setActiveTabId(tab.id)}
                 title={tab.title}
-                onContextMenu={(e) => closeTab(e, tab.id)}
+                draggable="true"
+                onDragStart={(e) => handleTabDragStart(e, tab.id)}
+                onDragOver={(e) => handleTabDragOver(e, tab.id)}
+                onDrop={(e) => handleTabDrop(e, tab.id)}
+                onDragEnd={handleTabDragEnd}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeTab(e, tab.id);
+                }}
               >
                 {/* Tab Hover Preview & Memory Usage */}
                 <div className="dock-tooltip">
@@ -1132,6 +1393,7 @@ function App() {
                       src={getFavicon(tab.url)} 
                       alt={tab.title} 
                       style={{width: '24px', height: '24px', borderRadius: '50%'}}
+                      draggable="false"
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.nextSibling.style.display = 'flex';

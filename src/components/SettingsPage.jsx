@@ -6,6 +6,16 @@ const SettingsPage = ({ settings, saveSettings, bookmarks, saveBookmarks, resetS
     const [activeTab, setActiveTab] = useState('general');
     const [editingBookmarkId, setEditingBookmarkId] = useState(null);
 
+    // Recommended User Agents
+    const RECOMMENDED_UAS = [
+        { name: 'Default (Firefox - Recommended)', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0' },
+        { name: 'Chrome (Windows)', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+        { name: 'Chrome (macOS)', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+        { name: 'Edge (Windows)', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0' },
+        { name: 'Safari (macOS)', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15' },
+        { name: 'Electron (Native)', value: navigator.userAgent }
+    ];
+
     const handleExternalLink = (e, url) => {
         e.preventDefault();
         if (window.electronAPI && window.electronAPI.openPath) {
@@ -108,12 +118,29 @@ const SettingsPage = ({ settings, saveSettings, bookmarks, saveBookmarks, resetS
                         </div>
                         <div className="settings-group">
                             <label>{t.userAgent}</label>
-                            <input 
-                                className="settings-input" 
-                                value={settings.userAgent} 
-                                onChange={(e) => saveSettings({...settings, userAgent: e.target.value})}
-                                placeholder="Custom User Agent string"
-                            />
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                                <select 
+                                    className="settings-input"
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            saveSettings({...settings, userAgent: e.target.value});
+                                        }
+                                    }}
+                                    value={RECOMMENDED_UAS.some(ua => ua.value === settings.userAgent) ? settings.userAgent : ''}
+                                >
+                                    <option value="" disabled>Select a recommended User Agent</option>
+                                    {RECOMMENDED_UAS.map((ua, index) => (
+                                        <option key={index} value={ua.value}>{ua.name}</option>
+                                    ))}
+                                    <option value="custom">Custom...</option>
+                                </select>
+                                <input 
+                                    className="settings-input" 
+                                    value={settings.userAgent} 
+                                    onChange={(e) => saveSettings({...settings, userAgent: e.target.value})}
+                                    placeholder="Custom User Agent string"
+                                />
+                            </div>
                         </div>
 
                         <div className="settings-group">

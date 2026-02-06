@@ -34,6 +34,7 @@
 *   **Tab Management**:
     *   **Live Previews**: Hover over dock items to see real-time previews of your tabs.
     *   **Memory Saver**: Automatically suspends inactive tabs to free up system resources.
+*   **Extensions Support**: Install Chrome extensions via CRX/Zip files or unpacked directories. Manage and search extensions with ease.
 *   **Privacy Focused**: Local-only history and settings storage. No cloud syncing, no tracking.
 *   **Essential Tools**: Built-in History and Downloads manager.
 *   **Customization**: Change search engines, themes (Light/Dark/Auto), and font sizes.
@@ -80,6 +81,7 @@
 
 *   **Macos样式**: 精美、现代的用户界面，完美融入您的桌面环境（支持主题自定义）。
 *   **智能 Dock 栏**: 自动隐藏的 Dock 栏，可快速访问标签页、书签和设置。
+*   **扩展支持**: 支持通过 CRX/Zip 文件或加载已解压的扩展程序安装 Chrome 扩展。提供便捷的扩展管理和搜索功能。
 *   **标签页管理**:
     *   **实时预览**: 鼠标悬停在 Dock 图标上即可查看标签页的实时截图预览。
     *   **内存节省模式**: 自动冻结非活动标签页，释放系统资源，让电脑运行更流畅。
@@ -108,19 +110,12 @@
     npm install
     ```
 
-3.  **运行开发模式**
+3.  **开发模式运行**
     ```bash
     npm run dev
     ```
-    *(注意：这将同时启动 Vite 开发服务器和 Electron 主进程)*
 
 4.  **构建生产版本**
     ```bash
     npm run build
     ```
-
----
-
-## 📄 License
-
-MIT License

@@ -1,0 +1,67 @@
+# Podfile for Comet Browser Mobile
+platform :ios, '14.0'
+
+# CocoaPods analytics sends network stats synchronously affecting build performance.
+ENV['COCOAPODS_DISABLE_STATS'] = '1'
+
+# Try to find FLUTTER_ROOT from environment (set by CI) or Generated.xcconfig
+def get_flutter_root
+  return ENV['FLUTTER_ROOT'] if ENV['FLUTTER_ROOT'] && File.exist?(ENV['FLUTTER_ROOT'])
+  
+  config_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  if File.exist?(config_path)
+    File.foreach(config_path) do |line|
+      matches = line.strip.match(/\AFLUTTER_ROOT=(.*)/)
+      if matches
+        path = matches[1].strip
+        return path if File.exist?(path)
+      end
+    end
+  end
+  nil
+end
+
+flutter_sdk_path = get_flutter_root
+if flutter_sdk_path
+  require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_sdk_path)
+else
+  # Fallback to standard relative path
+  require_relative '../Flutter/podhelper' if File.exist?(File.expand_path('../Flutter/podhelper.rb', __FILE__))
+end
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  if defined? flutter_install_all_ios_pods
+    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  end
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    
+    target.build_configurations.each do |config|
+      # Fix deployment target for all pods to iOS 14.0 minimum for firebase_auth and webview_flutter compatibility
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      
+      # Optimization for memory-heavy builds on CI
+      # Disabling LTO can significantly reduce memory usage during linking phase
+      config.build_settings['LLVM_LTO'] = 'NO'
+      
+      # Ensure BITCODE is disabled as it's deprecated and uses more memory
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+      
+      # Additional flags to reduce memory pressure during linking
+      config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+      if config.name == 'Release'
+        config.build_settings['OTHER_LDFLAGS'] << '-Xlinker' << '-no_deduplicate'
+      end
+    end
+  end
+end

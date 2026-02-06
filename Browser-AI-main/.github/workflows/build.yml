@@ -1,0 +1,147 @@
+name: Build Mobile Platforms
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch: {}
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true # Enable Flutter Pub cache
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/pubspec.lock', '**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install Dart dependencies
+        working-directory: CometBrowserMobile/comet_ai
+        run: |
+          flutter pub get
+          flutter pub upgrade --major-versions
+
+      - name: Build APK
+        working-directory: CometBrowserMobile/comet_ai
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: CometBrowserMobile/comet_ai/build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Precache iOS
+        run: flutter precache --ios
+
+      - name: Install Dart dependencies
+        working-directory: CometBrowserMobile/comet_ai
+        run: |
+          flutter pub get
+          flutter pub upgrade --major-versions
+
+      - name: Cache CocoaPods Dependencies
+        id: cocoapods-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            CometBrowserMobile/comet_ai/ios/Pods
+            ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-pods-${{ hashFiles('CometBrowserMobile/comet_ai/pubspec.lock') }}-${{ hashFiles('CometBrowserMobile/comet_ai/ios/Podfile') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-${{ hashFiles('CometBrowserMobile/comet_ai/pubspec.lock') }}-
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        working-directory: CometBrowserMobile/comet_ai/ios
+        run: |
+          gem install cocoapods
+          pod repo update
+          pod install --repo-update
+
+      - name: Build iOS
+        working-directory: CometBrowserMobile/comet_ai
+        run: |
+          # Use increased memory limit for the linker
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          flutter build ios --release --no-codesign -v
+
+      - name: Zip iOS App
+        working-directory: CometBrowserMobile/comet_ai/build/ios/iphoneos
+        run: zip -r Runner.app.zip Runner.app
+
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: CometBrowserMobile/comet_ai/build/ios/iphoneos/Runner.app.zip
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create Release and Upload Artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/android-apk/app-release.apk
+            artifacts/ios-app/Runner.app.zip
+          tag_name: release-${{ github.run_id }}
+          name: Release ${{ github.run_id }}
+          body: "Automated release of build artifacts."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -52,5 +52,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       const listener = (_event, data) => callback(data);
       ipcRenderer.on('download-failed', listener);
       return () => ipcRenderer.removeListener('download-failed', listener);
-  }
+  },
+  
+  // Extensions API
+  getExtensions: () => ipcRenderer.invoke('get-extensions'),
+  loadExtension: (path) => ipcRenderer.invoke('load-extension', path),
+  removeExtension: (id) => ipcRenderer.invoke('remove-extension', id),
+  toggleExtension: (data) => ipcRenderer.invoke('toggle-extension', data),
+  selectExtensionFile: () => ipcRenderer.invoke('select-extension-file'),
+  selectExtensionFolder: () => ipcRenderer.invoke('select-folder'), // Reuse select folder for unpacked extensions
+  
+  // System API
+  setUserAgent: (ua) => ipcRenderer.send('set-user-agent', ua),
+  createNewWindow: (url) => ipcRenderer.send('create-new-window', url),
+  openNewTab: (url) => ipcRenderer.send('open-new-tab', url)
 });

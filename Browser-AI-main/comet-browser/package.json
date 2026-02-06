@@ -1,0 +1,131 @@
+{
+  "name": "comet-browser",
+  "version": "0.1.6",
+  "private": true,
+  "description": "Comet AI Browser - A high-performance, intelligence-driven browsing workspace with local LLM support and advanced productivity features.",
+  "author": "Latestinssan",
+  "main": "main.js",
+  "homepage": "./",
+  "scripts": {
+    "dev": "concurrently \"npm:electron-dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-dev": "next dev",
+    "electron-start": "electron .",
+    "build": "next build",
+    "start": "npx serve@latest out",
+    "lint": "eslint",
+    "predev": "npx tsc src/lib/P2PFileSyncService.ts src/types/electron.d.ts --outDir src/lib --module CommonJS --skipLibCheck --esModuleInterop",
+    "test:prod": "node test-production.js",
+    "prebuild-electron": "node verify-build.js",
+    "build-electron": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "dist:mac": "npm run build && electron-builder --mac"
+  },
+  "dependencies": {
+    "@ghostery/adblocker-electron": "^2.13.4",
+    "@google/generative-ai": "^0.24.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "autoprefixer": "^10.4.23",
+    "body-parser": "^2.2.2",
+    "cross-fetch": "^4.1.0",
+    "electron-context-menu": "^4.1.1",
+    "electron-store": "^8.1.0",
+    "es-errors": "^1.3.0",
+    "express": "^5.2.1",
+    "firebase": "^12.7.0",
+    "framer-motion": "^12.23.26",
+    "katex": "^0.16.27",
+    "lucide-react": "^0.562.0",
+    "mysql2": "^3.11.5",
+    "next": "^16.1.3",
+    "object-inspect": "^1.13.3",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "qs": "^6.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "react-pdf": "^9.2.1",
+    "react-pdftotext": "^1.3.4",
+    "react-syntax-highlighter": "^16.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "side-channel": "^1.1.0",
+    "tesseract.js": "^7.0.0",
+    "wait-on": "^9.0.3",
+    "zustand": "^5.0.9"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.0.1",
+    "@next/eslint-plugin-next": "^16.1.4",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "19.2.8",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "concurrently": "^8.2.2",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.0.12",
+    "eslint": "^8.0.0",
+    "globals": "^13.24.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8.53.1"
+  },
+  "packageManager": "npm@11.5.1",
+  "build": {
+    "appId": "com.latestinssan.cometbrowser",
+    "productName": "Comet Browser",
+    "copyright": "Copyright © 2026 Latestinssan",
+    "asar": true,
+    "files": [
+      "out/**/*",
+      "!out/web/**/*",
+      "main.js",
+      "preload.js",
+      "view_preload.js",
+      "src/lib/P2PFileSyncService.js",
+      "src/lib/*.js",
+      "package.json",
+      "LICENSE.txt",
+      "icon.ico",
+      "icon.png"
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": "LICENSE.txt",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Comet Browser"
+    },
+    "win": {
+      "icon": "icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "icon": "icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "linux": {
+      "icon": "icon.png",
+      "target": [
+        "AppImage"
+      ],
+      "category": "Network;WebBrowser"
+    },
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    }
+  },
+  "optionalDependencies": {
+    "@next/swc-win32-x64-msvc": "^16.1.6"
+  }
+}

@@ -1,0 +1,90 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+}
+
+def newBuildDir = rootProject.layout.buildDirectory
+    .dir("../../build")
+    .get()
+rootProject.layout.buildDirectory.value(newBuildDir)
+
+subprojects {
+    def newSubprojectBuildDir = newBuildDir.dir(project.name)
+    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    
+    if (name != 'app') {
+        evaluationDependsOn(':app')
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
+}
+
+subprojects {
+    def configureNamespace = { p ->
+        try {
+            if (p.hasProperty('android')) {
+                if (p.android.namespace == null) {
+                    def manifestFile = p.file('src/main/AndroidManifest.xml')
+                    if (manifestFile.exists()) {
+                        def contents = manifestFile.text
+                        def matcher = contents =~ /package="([^"]+)"/
+                        if (matcher.find()) {
+                            p.android.namespace = matcher.group(1)
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore errors
+        }
+    }
+
+    def configureProject = { p ->
+        configureNamespace(p)
+        if (p.hasProperty('android')) {
+            // Only configure compileOptions, not compileSdk
+            // compileSdk must be set in individual module build.gradle files
+            p.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
+
+    if (project.state.executed) {
+        configureProject(project)
+    } else {
+        project.afterEvaluate { p ->
+            configureProject(p)
+        }
+    }
+
+    // fallback for any remaining tasks
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+}

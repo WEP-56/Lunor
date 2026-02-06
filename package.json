@@ -3,18 +3,52 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "A Modern, Lightweight, and Transparent Web Browser built with Electron & React.",
+  "author": "BrowserMos Team",
+  "license": "MIT",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"npm run electron\"",
-    "build": "vite build",
+    "build": "vite build && electron-builder",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "wait-on tcp:5173 && cross-env ELECTRON_START_URL=http://localhost:5173 electron ."
   },
+  "build": {
+    "appId": "com.browsermos.app",
+    "productName": "Lunor",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/lunor.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lunor",
+      "deleteAppDataOnUninstall": true
+    }
+  },
   "dependencies": {
+    "electron-chrome-extensions": "^4.9.0",
+    "electron-context-menu": "^4.1.1",
+    "fs-extra": "^11.3.3",
     "lucide-react": "^0.474.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -23,7 +57,8 @@
     "@vitejs/plugin-react": "^5.1.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^34.0.1",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
